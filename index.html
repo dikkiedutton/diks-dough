@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Pizza dough calculator</title>
+<title>Dikkie's pizza dough calculator</title>
 
 <!-- Your Pizza Emoji Icon -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
@@ -101,6 +101,16 @@
     color: var(--primary);
     font-size: 1.2rem;
     font-weight: bold;
+  }
+  
+  /* Dynamic Helper Text */
+  .help-text {
+    font-size: 0.85rem;
+    color: #666;
+    text-align: center;
+    margin-top: 8px;
+    font-style: italic;
+    min-height: 40px; /* Prevents layout jump when text wraps */
   }
 
   /* Plus/Minus Button Styling */
@@ -252,7 +262,7 @@
 <body>
 
 <div class="container">
-  <h1>Pizza dough calculator</h1>
+  <h1>Dikkie's pizza dough calculator</h1>
   
   <div class="form-group">
     <div class="hydration-header">
@@ -260,6 +270,7 @@
       <span id="hydrationVal">67%</span>
     </div>
     <input type="range" id="hydrationSlider" min="55" max="70" value="67" step="1" oninput="updateHydration()">
+    <div id="hydrationHelp" class="help-text"></div>
   </div>
 
   <div class="form-group">
@@ -288,7 +299,25 @@
   let clipboardText = "";
 
   function updateHydration() {
-    document.getElementById('hydrationVal').innerText = document.getElementById('hydrationSlider').value + '%';
+    const sliderVal = document.getElementById('hydrationSlider').value;
+    document.getElementById('hydrationVal').innerText = sliderVal + '%';
+    
+    // Update Dynamic Helper Text
+    const h = parseInt(sliderVal);
+    let helpText = "";
+    
+    if (h === 67) {
+      helpText = "Vito's original recipe. Sticky dough, but yields a beautifully light, puffy crust.";
+    } else if (h >= 55 && h <= 59) {
+      helpText = "Easier to handle and stretch. Great for standard home ovens and a crispier base.";
+    } else if (h >= 60 && h <= 66) {
+      helpText = "The sweet spot. A great balance of workability and an airy crust.";
+    } else if (h >= 68 && h <= 70) {
+      helpText = "Advanced. Very sticky dough requiring strong flour and excellent technique.";
+    }
+    
+    document.getElementById('hydrationHelp').innerText = helpText;
+
     calculate();
   }
 
@@ -318,25 +347,22 @@
     // Mathematical Rules
     const targetBallWeight = 250;
     const saltPerPizza = 4;
-    const flourWaterWeightPerPizza = targetBallWeight - saltPerPizza; // 246g to split
+    const flourWaterWeightPerPizza = targetBallWeight - saltPerPizza; 
     
-    // Dynamically calculate the perfect ratio of flour and water to hit the hydration %
     const totalFlourPerPizza = flourWaterWeightPerPizza / (1 + targetHydration);
     const totalWaterPerPizza = flourWaterWeightPerPizza - totalFlourPerPizza;
     
-    // Maintain the poolish proportion from your original 67% recipe (67g out of 150g flour)
     const poolishFlourRatio = 67 / 150; 
     const poolishFlourPerPizza = totalFlourPerPizza * poolishFlourRatio;
-    const poolishWaterPerPizza = poolishFlourPerPizza; // Poolish is always 100% hydration
+    const poolishWaterPerPizza = poolishFlourPerPizza; 
 
-    // Multiply by quantity first, then round, to prevent rounding errors
     const totalFlourPrecise = totalFlourPerPizza * num;
     const totalWaterPrecise = totalWaterPerPizza * num;
     const pFlourPrecise = poolishFlourPerPizza * num;
 
     // Final Rounded Ingredient Weights
     const pFlour = Math.round(pFlourPrecise);
-    const pWater = pFlour; // Ensures visual 100% hydration for poolish
+    const pWater = pFlour; 
     
     const totalFlour = Math.round(totalFlourPrecise);
     const totalWater = Math.round(totalWaterPrecise);
@@ -361,20 +387,20 @@
     const totalWeight = pWater + pFlour + pYeast + pHoney + dWater + dFlour + dSalt;
 
     // Build the Text String for Clipboard
-    clipboardText = `Pizza Dough Recipe (${num}x 250g balls @ ${displayHydration}% hydration)\n\n` +
+    clipboardText = `Pizza dough recipe (${num}x 250g balls @ ${displayHydration}% hydration)\n\n` +
       `1. Poolish:\n` +
       `- Water: ${pWater}g\n` +
       `- Flour: ${pFlour}g\n` +
       `- Yeast: ${pYeast}g\n` +
       `- Honey: ${pHoney}g\n\n` +
-      `2. Main Dough:\n` +
+      `2. Main dough:\n` +
       `- Water: ${dWater}g\n` +
       `- Flour: ${dFlour}g\n` +
       `- Salt: ${dSalt}g\n\n` +
       `Totals:\n` +
-      `- Total Flour: ${totalFlour}g\n` +
-      `- Total Water: ${totalWater}g\n` +
-      `- Total Weight: ${totalWeight}g`;
+      `- Total flour: ${totalFlour}g\n` +
+      `- Total water: ${totalWater}g\n` +
+      `- Total weight: ${totalWeight}g`;
 
     // Build the UI HTML
     let html = `
@@ -469,7 +495,8 @@
     }
   });
 
-  calculate();
+  // Call updateHydration on load instead of calculate so the text populates immediately
+  updateHydration();
 </script>
 
 </body>
