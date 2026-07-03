@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pizza dough calculator</title>
+
+<!-- These two lines generate the pizza emoji icon -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
+
+<style>
+  :root {
+    --primary: #e63946;
+    --background: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --border: #dee2e6;
+  }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .container {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-width: 500px;
+    width: 100%;
+    padding: 30px;
+  }
+  h1 {
+    text-align: center;
+    color: var(--primary);
+    margin-top: 0;
+    margin-bottom: 25px;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+  }
+  select, input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .recipe-section {
+    margin-top: 25px;
+    background: #fdfdfd;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .recipe-section h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 8px;
+    color: var(--text);
+  }
+  ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+  li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  li:last-child {
+    border-bottom: none;
+  }
+  .totals {
+    background: #f1f3f5;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+  }
+  .totals li {
+    font-weight: bold;
+    border-bottom: none;
+    padding: 4px 0;
+  }
+  .weight {
+    color: var(--primary);
+    font-weight: bold;
+  }
+  .empty-state {
+    text-align: center;
+    color: #777;
+    margin-top: 30px;
+    font-style: italic;
+  }
+  
+  /* Toggle Switch CSS */
+  .wake-lock-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 1px solid var(--border);
+  }
+  .wake-lock-container label {
+    margin-bottom: 0;
+    cursor: pointer;
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+  }
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  input:checked + .slider {
+    background-color: var(--primary);
+  }
+  input:checked + .slider:before {
+    transform: translateX(22px);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Pizza dough calculator</h1>
+  
+  <div class="form-group">
+    <label for="recipeType">Select recipe</label>
+    <select id="recipeType" onchange="calculate()">
+      <option value="58">250g balls (58% hydration)</option>
+      <option value="67">250g balls (67% hydration)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="numPizzas">Quantity of pizzas</label>
+    <input type="number" id="numPizzas" placeholder="How many pizzas would you like to cook?" min="1" oninput="calculate()">
+  </div>
+
+  <div class="wake-lock-container">
+    <label for="wakeLockToggle">Keep screen on</label>
+    <label class="switch">
+      <input type="checkbox" id="wakeLockToggle" onchange="toggleWakeLock()">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div id="results">
+    <!-- JavaScript will populate this section -->
+  </div>
+</div>
+
+<script>
+  const recipes = {
+    "58": {
+      poolish: { water: 39, flour: 39 },
+      dough: { water: 51, flour: 116, salt: 4 }
+    },
+    "67": {
+      poolish: { water: 67, flour: 67 },
+      dough: { water: 33, flour: 83, salt: 4 }
+    }
+  };
+
+  function calculate() {
+    const type = document.getElementById('recipeType').value;
+    let num = parseInt(document.getElementById('numPizzas').value);
+    
+    // If the input is empty or invalid, clear the recipe and show a prompt
+    if (isNaN(num) || num < 1) {
+      document.getElementById('results').innerHTML = '<p class="empty-state">Please enter a number above to see your recipe.</p>';
+      return; 
+    }
+
+    const rec = recipes[type];
+
+    // Calculate Poolish
+    const pWater = Math.round(rec.poolish.water * num);
+    const pFlour = Math.round(rec.poolish.flour * num);
+    
+    let pYeast = 5;
+    if (num === 1) {
+      pYeast = 2;
+    } else {
+      if (num < 10) pYeast = 5;
+      else if (num < 20) pYeast = 10;
+      else pYeast = 15; 
+    }
+
+    let pHoney = (num === 1) ? 2 : 5;
+
+    // Calculate Dough
+    const dWater = Math.round(rec.dough.water * num);
+    const dFlour = Math.round(rec.dough.flour * num);
+    const dSalt = Math.round(rec.dough.salt * num);
+
+    // Calculate Totals
+    const totalFlour = pFlour + dFlour;
+    const totalWater = pWater + dWater;
+    const hydration = ((totalWater / totalFlour) * 100).toFixed(1);
+    const totalWeight = pWater + pFlour + pYeast + pHoney + dWater + dFlour + dSalt;
+
+    // Build the UI HTML
+    let html = `
+      <div class="recipe-section">
+        <h2>1. Poolish</h2>
+        <ul>
+          <li><span>Water</span> <span class="weight">${pWater}g</span></li>
+          <li><span>Flour</span> <span class="weight">${pFlour}g</span></li>
+          <li><span>Yeast</span> <span class="weight">${pYeast}g</span></li>
+          <li><span>Honey</span> <span class="weight">${pHoney}g</span></li>
+        </ul>
+      </div>
+
+      <div class="recipe-section">
+        <h2>2. Main Dough</h2>
+        <ul>
+          <li><span>Water</span> <span class="weight">${dWater}g</span></li>
+          <li><span>Flour</span> <span class="weight">${dFlour}g</span></li>
+          <li><span>Salt</span> <span class="weight">${dSalt}g</span></li>
+        </ul>
+      </div>
+
+      <div class="totals">
+        <ul>
+          <li><span>Total Flour</span> <span>${totalFlour}g</span></li>
+          <li><span>Total Water</span> <span>${totalWater}g</span></li>
+          <li><span>Actual Hydration</span> <span>${hydration}%</span></li>
+          <li><span>Total Dough Weight</span> <span>${totalWeight}g</span></li>
+        </ul>
+      </div>
+    `;
+
+    document.getElementById('results').innerHTML = html;
+  }
+
+  // --- Screen Wake Lock Logic ---
+  let wakeLock = null;
+
+  async function toggleWakeLock() {
+    const toggle = document.getElementById('wakeLockToggle');
+    
+    if (toggle.checked) {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          alert("Your browser blocked the Wake Lock feature. Make sure you're viewing this on a secure connection (HTTPS).");
+          toggle.checked = false;
+        }
+      } else {
+        alert("Your browser doesn't support the Screen Wake Lock API.");
+        toggle.checked = false;
+      }
+    } else {
+      if (wakeLock !== null) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+        });
+      }
+    }
+  }
+
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      const toggle = document.getElementById('wakeLockToggle');
+      if (toggle.checked) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.error("Could not re-acquire wake lock.");
+        }
+      }
+    }
+  });
+
+  // Run calculation on load (will show the empty state message)
+  calculate();
+</script>
+
+</body>
+</html>
