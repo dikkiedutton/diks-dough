@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- These meta tags force "App Mode" and set the top status bar to match your theme -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#e63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Pizza dough calculator</title>
 
-<!-- These two lines generate the pizza emoji icon -->
+<!-- Your Pizza Emoji Icon -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
 
@@ -62,6 +67,34 @@
     outline: none;
     border-color: var(--primary);
   }
+  
+  /* Plus/Minus Button Styling */
+  .quantity-wrapper {
+    display: flex;
+    gap: 10px;
+  }
+  .qty-btn {
+    background-color: var(--background);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 60px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none; /* Prevents text highlighting when tapping fast */
+    transition: background-color 0.1s;
+  }
+  .qty-btn:active {
+    background-color: #e2e6ea;
+  }
+  .quantity-wrapper input {
+    text-align: center;
+  }
+
   .recipe-section {
     margin-top: 25px;
     background: #fdfdfd;
@@ -112,6 +145,24 @@
     font-style: italic;
   }
   
+  /* Copy Button Styling */
+  .copy-btn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 20px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .copy-btn:active {
+    opacity: 0.8;
+  }
+
   /* Toggle Switch CSS */
   .wake-lock-container {
     display: flex;
@@ -178,7 +229,11 @@
 
   <div class="form-group">
     <label for="numPizzas">Quantity of pizzas</label>
-    <input type="number" id="numPizzas" placeholder="How many pizzas would you like to cook?" min="1" oninput="calculate()">
+    <div class="quantity-wrapper">
+      <button type="button" class="qty-btn" onclick="adjustQty(-1)">-</button>
+      <input type="number" id="numPizzas" placeholder="How many pizzas would you like to cook?" min="1" oninput="calculate()">
+      <button type="button" class="qty-btn" onclick="adjustQty(1)">+</button>
+    </div>
   </div>
 
   <div class="wake-lock-container">
@@ -206,13 +261,34 @@
     }
   };
 
+  // Variable to store the raw text version of the recipe for copying
+  let clipboardText = "";
+
+  function adjustQty(change) {
+    const input = document.getElementById('numPizzas');
+    let current = parseInt(input.value);
+    
+    // If empty, treat as 0 before adding/subtracting
+    if (isNaN(current)) {
+      current = 0;
+    }
+    
+    let newVal = current + change;
+    
+    // Don't drop below 1
+    if (newVal < 1) newVal = 1;
+    
+    input.value = newVal;
+    calculate();
+  }
+
   function calculate() {
     const type = document.getElementById('recipeType').value;
     let num = parseInt(document.getElementById('numPizzas').value);
     
-    // If the input is empty or invalid, clear the recipe and show a prompt
     if (isNaN(num) || num < 1) {
       document.getElementById('results').innerHTML = '<p class="empty-state">Please enter a number above to see your recipe.</p>';
+      clipboardText = "";
       return; 
     }
 
@@ -244,6 +320,22 @@
     const hydration = ((totalWater / totalFlour) * 100).toFixed(1);
     const totalWeight = pWater + pFlour + pYeast + pHoney + dWater + dFlour + dSalt;
 
+    // Build the Text String for Clipboard
+    clipboardText = `Pizza Dough Recipe (${num}x 250g balls @ ${hydration}% hydration)\n\n` +
+      `1. Poolish:\n` +
+      `- Water: ${pWater}g\n` +
+      `- Flour: ${pFlour}g\n` +
+      `- Yeast: ${pYeast}g\n` +
+      `- Honey: ${pHoney}g\n\n` +
+      `2. Main Dough:\n` +
+      `- Water: ${dWater}g\n` +
+      `- Flour: ${dFlour}g\n` +
+      `- Salt: ${dSalt}g\n\n` +
+      `Totals:\n` +
+      `- Total Flour: ${totalFlour}g\n` +
+      `- Total Water: ${totalWater}g\n` +
+      `- Total Weight: ${totalWeight}g`;
+
     // Build the UI HTML
     let html = `
       <div class="recipe-section">
@@ -273,9 +365,29 @@
           <li><span>Total Dough Weight</span> <span>${totalWeight}g</span></li>
         </ul>
       </div>
+      
+      <button class="copy-btn" onclick="copyRecipe(this)">Copy Recipe to Clipboard</button>
     `;
 
     document.getElementById('results').innerHTML = html;
+  }
+
+  function copyRecipe(button) {
+    if (!clipboardText) return;
+    
+    navigator.clipboard.writeText(clipboardText).then(() => {
+      // Temporarily change button text to show success
+      const originalText = button.innerText;
+      button.innerText = "✓ Copied!";
+      button.style.backgroundColor = "#2a9d8f"; // Turn green
+      
+      setTimeout(() => {
+        button.innerText = originalText;
+        button.style.backgroundColor = "var(--primary)";
+      }, 2000);
+    }).catch(err => {
+      alert("Failed to copy text. Your browser might block this feature.");
+    });
   }
 
   // --- Screen Wake Lock Logic ---
@@ -318,7 +430,7 @@
     }
   });
 
-  // Run calculation on load (will show the empty state message)
+  // Run calculation on load
   calculate();
 </script>
 
